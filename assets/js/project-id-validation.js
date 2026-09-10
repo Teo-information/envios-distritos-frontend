@@ -265,3 +265,28 @@
 
   syncUtm({ forcePrefix: false, preserveDigits: true });
 })();
+
+(() => {
+  'use strict';
+
+  const periodo = document.querySelector('#periodo');
+  const environmentPill = document.querySelector('#environmentPill');
+  const sidebarMessage = document.querySelector('.sidebar-footer p');
+
+  if (periodo) {
+    periodo.readOnly = true;
+    periodo.setAttribute('aria-readonly', 'true');
+    periodo.setAttribute('title', 'Periodo operativo definido automáticamente por CONTROL DE CIERRES');
+  }
+
+  if (sidebarMessage) {
+    sidebarMessage.remove();
+  }
+
+  // app.js escribe el estado durante init(); lo dejamos limpio al terminar de cargar.
+  window.addEventListener('load', () => {
+    if (!environmentPill) return;
+    environmentPill.textContent = 'n8n conectado';
+    environmentPill.setAttribute('title', 'Conexión con automatización n8n activa');
+  });
+})();
