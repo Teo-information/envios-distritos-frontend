@@ -1,0 +1,96 @@
+/* Corrección global de ancho y desborde horizontal */
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  min-width: 0;
+}
+
+.app-shell {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: clip;
+}
+
+.main-content {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.main-content,
+.topbar,
+.hero-card,
+.content-grid,
+.content-grid > *,
+.panel,
+.result-panel,
+.success-panel,
+.metric-grid,
+.generate-bar,
+.reuse-panel,
+.lots-list,
+.lot-card,
+.summary-card,
+.summary-list,
+.success-details {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.content-grid,
+.hero-card,
+.result-panel,
+.success-panel {
+  width: 100%;
+}
+
+.summary-list dd,
+.success-details strong,
+.lot-main,
+.lot-main span,
+.lot-count,
+.availability-message,
+.generate-summary,
+.generate-summary strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+input,
+select,
+button,
+textarea {
+  max-width: 100%;
+}
+
+img,
+svg {
+  max-width: 100%;
+}
+
+@media (max-width: 1120px) {
+  .app-shell {
+    grid-template-columns: 82px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    display: block;
+    width: 100%;
+  }
+
+  .main-content {
+    width: 100%;
+    max-width: 100%;
+  }
+}
