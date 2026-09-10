@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="assets/css/styles.css" />
   <link rel="stylesheet" href="assets/css/reuse-ui.css" />
   <link rel="stylesheet" href="assets/css/layout-fix.css" />
+  <link rel="stylesheet" href="assets/css/project-id-validation.css" />
 </head>
 <body>
   <div class="app-shell">
@@ -125,17 +126,19 @@
               <div class="field-grid field-grid--3">
                 <label class="field">
                   <span>Project ID 1</span>
-                  <input id="projectId1" inputmode="numeric" placeholder="Ej. 4309" />
+                  <input id="projectId1" inputmode="numeric" maxlength="4" pattern="[0-9]{3,4}" autocomplete="off" placeholder="Ej. 4309" />
                 </label>
                 <label class="field">
                   <span>Project ID 2</span>
-                  <input id="projectId2" inputmode="numeric" placeholder="Ej. 3780" />
+                  <input id="projectId2" inputmode="numeric" maxlength="4" pattern="[0-9]{3,4}" autocomplete="off" placeholder="Ej. 3780" />
                 </label>
                 <label class="field">
                   <span>Project ID 3</span>
-                  <input id="projectId3" inputmode="numeric" placeholder="Ej. 4118" />
+                  <input id="projectId3" inputmode="numeric" maxlength="4" pattern="[0-9]{3,4}" autocomplete="off" placeholder="Ej. 4118" />
                 </label>
               </div>
+
+              <p class="project-id-rule" id="projectIdRule">Cada Project ID debe tener 3 o 4 dígitos y los tres deben ser diferentes.</p>
 
               <label class="field">
                 <span>UTM Campaign</span>
@@ -252,6 +255,7 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="assets/js/config.js"></script>
+  <script src="assets/js/project-id-validation.js"></script>
   <script src="assets/js/app.js"></script>
 </body>
 </html>
