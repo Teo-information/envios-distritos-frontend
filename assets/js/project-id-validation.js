@@ -8,9 +8,19 @@
     document.querySelector('#projectId3')
   ].filter(Boolean);
   const rule = document.querySelector('#projectIdRule');
+  const utmInput = document.querySelector('#utmCampaign');
+  const distritoInput = document.querySelector('#distrito');
   const toast = document.querySelector('#toast');
 
   if (!form || inputs.length !== 3) return;
+
+  let utmRule = document.querySelector('#utmCampaignRule');
+  if (utmInput && !utmRule) {
+    utmRule = document.createElement('small');
+    utmRule.id = 'utmCampaignRule';
+    utmRule.className = 'utm-campaign-rule';
+    utmInput.insertAdjacentElement('afterend', utmRule);
+  }
 
   function isWhatsapp() {
     return document.querySelector('input[name="canal"]:checked')?.value === 'WHATSAPP';
@@ -37,7 +47,7 @@
     }
   }
 
-  function validate({ report = false } = {}) {
+  function validateProjectIds({ report = false } = {}) {
     if (!isWhatsapp()) {
       clearState();
       return { valid: true, message: '', firstInvalid: null };
@@ -86,6 +96,93 @@
     };
   }
 
+  function districtPrefix() {
+    const raw = String(distritoInput?.value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+
+    // El valor del select usa slugs como BRENA, JESUS_MARIA o LIMA_NORTE.
+    // Para campaña se estandarizan sin tildes, espacios ni separadores internos.
+    return raw.replace(/[^a-z]/g, '');
+  }
+
+  function extractUtmDigits(value) {
+    const raw = String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+
+    const suffix = raw.includes('_') ? raw.slice(raw.lastIndexOf('_') + 1) : raw;
+    return suffix.replace(/\D/g, '').slice(0, 8);
+  }
+
+  function utmExample() {
+    const prefix = districtPrefix() || 'distrito';
+    return `${prefix}_100926`;
+  }
+
+  function updateUtmHint({ error = false, valid = false, message = '' } = {}) {
+    if (!utmRule) return;
+
+    utmRule.classList.toggle('is-error', error);
+    utmRule.classList.toggle('is-valid', valid);
+    utmRule.textContent = message || `Formato automático: ${utmExample()}. El valor numérico admite hasta 8 dígitos.`;
+  }
+
+  function syncUtm({ forcePrefix = false, preserveDigits = true } = {}) {
+    if (!utmInput) return;
+
+    const prefix = districtPrefix();
+    if (!prefix) return;
+
+    const digits = preserveDigits ? extractUtmDigits(utmInput.value) : '';
+
+    if (digits) {
+      utmInput.value = `${prefix}_${digits}`;
+    } else if (forcePrefix) {
+      utmInput.value = `${prefix}_`;
+    } else if (utmInput.value && utmInput.value !== `${prefix}_`) {
+      utmInput.value = `${prefix}_`;
+    }
+
+    utmInput.placeholder = `Ej. ${utmExample()}`;
+    updateUtmHint();
+  }
+
+  function validateUtm({ report = false } = {}) {
+    if (!utmInput || !isWhatsapp()) {
+      utmInput?.classList.remove('is-utm-invalid');
+      utmInput?.removeAttribute('aria-invalid');
+      updateUtmHint();
+      return { valid: true, message: '', firstInvalid: null };
+    }
+
+    const prefix = districtPrefix();
+    const value = String(utmInput.value || '').trim().toLowerCase();
+    const expected = new RegExp(`^${prefix}_\\d{1,8}$`);
+    const valid = Boolean(prefix) && expected.test(value);
+    const message = valid
+      ? ''
+      : `UTM Campaign debe usar el formato ${prefix || 'distrito'}_12345678, con un máximo de 8 dígitos.`;
+
+    utmInput.classList.toggle('is-utm-invalid', !valid && report);
+    if (!valid && report) utmInput.setAttribute('aria-invalid', 'true');
+    else utmInput.removeAttribute('aria-invalid');
+
+    updateUtmHint({
+      error: !valid && report,
+      valid,
+      message: !valid && report ? message : ''
+    });
+
+    return {
+      valid,
+      message,
+      firstInvalid: valid ? null : utmInput
+    };
+  }
+
   inputs.forEach(input => {
     input.setAttribute('maxlength', '4');
     input.setAttribute('inputmode', 'numeric');
@@ -94,26 +191,77 @@
 
     input.addEventListener('input', () => {
       sanitize(input);
-      validate({ report: false });
+      validateProjectIds({ report: false });
     });
 
     input.addEventListener('blur', () => {
-      if (input.value) validate({ report: true });
+      if (input.value) validateProjectIds({ report: true });
     });
   });
 
+  if (utmInput) {
+    utmInput.setAttribute('autocomplete', 'off');
+    utmInput.setAttribute('spellcheck', 'false');
+    utmInput.setAttribute('autocapitalize', 'none');
+
+    utmInput.addEventListener('focus', () => {
+      if (!utmInput.value) syncUtm({ forcePrefix: true, preserveDigits: false });
+    });
+
+    utmInput.addEventListener('input', () => {
+      syncUtm({ forcePrefix: true, preserveDigits: true });
+      validateUtm({ report: false });
+    });
+
+    utmInput.addEventListener('blur', () => {
+      validateUtm({ report: Boolean(utmInput.value) });
+    });
+  }
+
+  distritoInput?.addEventListener('change', () => {
+    const hasValue = Boolean(utmInput?.value);
+    syncUtm({ forcePrefix: hasValue, preserveDigits: true });
+    validateUtm({ report: false });
+  });
+
   document.querySelectorAll('input[name="canal"]').forEach(input => {
-    input.addEventListener('change', () => validate({ report: false }));
+    input.addEventListener('change', () => {
+      validateProjectIds({ report: false });
+      syncUtm({ forcePrefix: false, preserveDigits: true });
+      validateUtm({ report: false });
+    });
+  });
+
+  form.addEventListener('reset', () => {
+    window.setTimeout(() => {
+      clearState();
+      if (utmInput) {
+        utmInput.classList.remove('is-utm-invalid');
+        utmInput.removeAttribute('aria-invalid');
+        syncUtm({ forcePrefix: false, preserveDigits: false });
+      }
+    }, 0);
   });
 
   // Captura el submit antes que app.js para impedir cualquier consulta inválida.
   form.addEventListener('submit', event => {
-    const result = validate({ report: true });
-    if (result.valid) return;
+    const projectResult = validateProjectIds({ report: true });
+    if (!projectResult.valid) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      showToast(projectResult.message);
+      projectResult.firstInvalid?.focus();
+      return;
+    }
 
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    showToast(result.message);
-    result.firstInvalid?.focus();
+    const utmResult = validateUtm({ report: true });
+    if (!utmResult.valid) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      showToast(utmResult.message);
+      utmResult.firstInvalid?.focus();
+    }
   }, true);
+
+  syncUtm({ forcePrefix: false, preserveDigits: true });
 })();
