@@ -451,6 +451,56 @@
     }
   }
 
+  function animateSuccessPanel() {
+    if (!els.successPanel?.animate) return;
+
+    els.successPanel.animate([
+      { opacity: 0, transform: 'translateY(18px) scale(.985)' },
+      { opacity: 1, transform: 'translateY(0) scale(1)' }
+    ], {
+      duration: 520,
+      easing: 'cubic-bezier(.2,.8,.2,1)',
+      fill: 'both'
+    });
+
+    const icon = els.successPanel.querySelector('.success-icon');
+    if (icon?.animate) {
+      icon.animate([
+        { transform: 'scale(.55) rotate(-10deg)', opacity: .25 },
+        { transform: 'scale(1.12) rotate(3deg)', opacity: 1, offset: .7 },
+        { transform: 'scale(1) rotate(0deg)', opacity: 1 }
+      ], {
+        duration: 620,
+        easing: 'cubic-bezier(.2,.8,.2,1)'
+      });
+    }
+  }
+
+  function clearRequestAfterSuccess() {
+    // Conserva periodo, canal y distrito para facilitar solicitudes consecutivas,
+    // pero limpia los valores propios del corte que acaba de completarse.
+    els.cantidad.value = '';
+    els.projectIds.forEach(input => {
+      input.value = '';
+    });
+    els.utmCampaign.value = '';
+
+    els.availabilityPanel.classList.add('is-hidden');
+    els.reusePanel.classList.add('is-hidden');
+    els.lotsList.innerHTML = '';
+    els.expectedResult.textContent = '—';
+
+    availability = null;
+    lots = [];
+    currentRequestId = null;
+
+    // El formulario queda listo para una nueva consulta,
+    // mientras el mensaje del último corte permanece visible.
+    setPhase('form');
+    updateConditionalFields();
+    updateSummary();
+  }
+
   async function onGenerate() {
     if (phase !== 'availability') return;
 
@@ -472,18 +522,25 @@
       });
 
       const result = await generateCut(payload);
+      const selectedDistrict = els.distrito.options[els.distrito.selectedIndex]?.textContent || result.distrito || '—';
+      const successPeriod = result.periodo || els.periodo.value || '—';
+      const successChannel = result.canal || getCanal();
 
       els.successMessage.textContent = `Lote ${String(result.sequence || '').padStart(3, '0')} generado y confirmado.`;
       els.successDetails.innerHTML = `
+        <div><span>Periodo</span><strong>${successPeriod}</strong></div>
+        <div><span>Canal</span><strong>${successChannel}</strong></div>
+        <div><span>Distrito</span><strong>${selectedDistrict}</strong></div>
         <div><span>Batch ID</span><strong>${result.batch_id || '—'}</strong></div>
         <div><span>Generados</span><strong>${number(result.generados)}</strong></div>
         <div><span>Nuevos</span><strong>${number(result.nuevos)}</strong></div>
         <div><span>Reutilizados</span><strong>${number(result.reutilizados)}</strong></div>
       `;
+
       els.successPanel.classList.remove('is-hidden');
       setStep(4);
-      currentRequestId = null;
-      setPhase('completed');
+      clearRequestAfterSuccess();
+      animateSuccessPanel();
       els.successPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } catch (error) {
       // Si falla la generación, se mantiene la consulta y se permite reintentar.
