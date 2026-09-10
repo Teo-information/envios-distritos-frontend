@@ -34,19 +34,38 @@ html[data-theme="dark"] .hero-card {
   background: linear-gradient(130deg, #3025aa 0%, #1b147f 64%, #140d6d 100%);
 }
 
+/* Marca lateral: TOGA en mayúsculas, sin subtítulo anterior */
 .brand-copy strong {
-  letter-spacing: .055em;
+  font-size: 0;
+  letter-spacing: .08em;
 }
 
-.nav-icon--cut {
-  font-size: 18px;
-  line-height: 1;
+.brand-copy strong::after {
+  content: "TOGA";
+  font-size: 16px;
+  font-weight: 820;
+  letter-spacing: .08em;
+}
+
+.brand-copy small {
+  display: none;
+}
+
+/* Icono del módulo Generar corte: tijera */
+.nav-item[data-view="generator"] .nav-icon {
+  font-size: 0;
   transform: rotate(-8deg);
   transform-origin: center;
   transition: transform .24s cubic-bezier(.2,.8,.2,1);
 }
 
-.nav-item:hover .nav-icon--cut,
-.nav-item.is-active .nav-icon--cut {
+.nav-item[data-view="generator"] .nav-icon::before {
+  content: "✂";
+  font-size: 18px;
+  line-height: 1;
+}
+
+.nav-item[data-view="generator"]:hover .nav-icon,
+.nav-item[data-view="generator"].is-active .nav-icon {
   transform: rotate(-14deg) scale(1.08);
 }
