@@ -15,3 +15,40 @@ window.ENVIO_APP_CONFIG = {
 
   themeStorageKey: 'envios-data-theme'
 };
+
+(() => {
+  'use strict';
+
+  const LOGO_PATH = 'assets/img/toga-globe.svg';
+
+  function applyBranding() {
+    if (!document.querySelector('link[data-toga-favicon]')) {
+      const favicon = document.createElement('link');
+      favicon.rel = 'icon';
+      favicon.type = 'image/svg+xml';
+      favicon.href = LOGO_PATH;
+      favicon.dataset.togaFavicon = 'true';
+      document.head.appendChild(favicon);
+    }
+
+    const brandMark = document.querySelector('.brand-mark');
+    if (brandMark && !brandMark.querySelector('.brand-logo')) {
+      brandMark.innerHTML = `
+        <img
+          class="brand-logo"
+          src="${LOGO_PATH}"
+          alt=""
+          width="42"
+          height="42"
+          aria-hidden="true"
+        />
+      `;
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyBranding, { once: true });
+  } else {
+    applyBranding();
+  }
+})();
