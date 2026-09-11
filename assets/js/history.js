@@ -35,6 +35,13 @@
       .trim();
   }
 
+  function channelClass(value) {
+    const channel = String(value || '').toUpperCase();
+    if (channel === 'EMAIL') return 'history-channel--email';
+    if (channel === 'WHATSAPP') return 'history-channel--whatsapp';
+    return 'history-channel--other';
+  }
+
   function parseDate(value) {
     if (!value) return null;
     const raw = String(value).trim();
@@ -79,8 +86,9 @@
             <p>Consulta los cortes confirmados registrados por el sistema.</p>
           </div>
           <div class="history-count" aria-label="Cantidad de cortes">
+            <span class="history-count__glow" aria-hidden="true"></span>
             <strong id="historyCount">0</strong>
-            <span>cortes</span>
+            <span class="history-count__label">cortes</span>
           </div>
         </div>
 
@@ -191,10 +199,10 @@
         <table class="history-table">
           <thead>
             <tr>
-              <th>Fecha del corte</th>
-              <th>Cantidad</th>
-              <th>Tipo</th>
-              <th>Distrito</th>
+              <th scope="col">Fecha del corte</th>
+              <th scope="col">Cantidad</th>
+              <th scope="col">Tipo</th>
+              <th scope="col">Distrito</th>
             </tr>
           </thead>
           <tbody>
@@ -202,7 +210,12 @@
               <tr style="animation-delay:${Math.min(index * 32, 320)}ms">
                 <td>${escapeHtml(formatDate(row.fecha))}</td>
                 <td><strong>${number(row.cantidad)}</strong></td>
-                <td><span class="history-channel">${escapeHtml(row.tipo || '—')}</span></td>
+                <td>
+                  <span class="history-channel ${channelClass(row.tipo)}">
+                    <span class="history-channel__dot" aria-hidden="true"></span>
+                    ${escapeHtml(row.tipo || '—')}
+                  </span>
+                </td>
                 <td>${escapeHtml(row.distrito)}</td>
               </tr>
             `).join('')}
