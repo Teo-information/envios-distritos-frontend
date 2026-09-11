@@ -6,8 +6,15 @@
 window.ENVIO_APP_CONFIG = {
   mode: 'live', // 'mock' | 'live'
 
-  // Workflow GENERACION DATA ENVIOS activado en n8n.
+  // Mientras la autenticación está desactivada, el frontend conserva
+  // el flujo actual directo a n8n. Al desplegar el dominio se cambiará
+  // a /api/gateway/envios-distritos detrás de FastAPI autenticado.
   gatewayWebhook: 'https://paneln8n.toga.pe/webhook/envios-distritos/solicitud',
+
+  // Preparado para el despliegue con FastAPI + cookie HttpOnly.
+  // Se activa cuando el backend y el proxy HTTPS estén verificados.
+  authEnabled: false,
+  apiBase: '/api',
 
   // Solo se usa como valor inicial visual. n8n mantiene la autoridad
   // sobre el periodo real mediante CONTROL DE CIERRES.
@@ -21,15 +28,20 @@ window.ENVIO_APP_CONFIG = {
 
   const LOGO_PATH = 'assets/img/toga-globe.svg';
   const BRAND_CSS_PATH = 'assets/css/brand-layout-fixes.css';
+  const AUTH_CSS_PATH = 'assets/css/auth-ui.css';
+  const AUTH_JS_PATH = 'assets/js/auth.js';
+
+  function addStylesheet(path, datasetKey) {
+    if (document.querySelector(`link[data-${datasetKey}]`)) return;
+    const styles = document.createElement('link');
+    styles.rel = 'stylesheet';
+    styles.href = path;
+    styles.setAttribute(`data-${datasetKey}`, 'true');
+    document.head.appendChild(styles);
+  }
 
   function applyBranding() {
-    if (!document.querySelector('link[data-toga-brand-styles]')) {
-      const styles = document.createElement('link');
-      styles.rel = 'stylesheet';
-      styles.href = BRAND_CSS_PATH;
-      styles.dataset.togaBrandStyles = 'true';
-      document.head.appendChild(styles);
-    }
+    addStylesheet(BRAND_CSS_PATH, 'toga-brand-styles');
 
     if (!document.querySelector('link[data-toga-favicon]')) {
       const favicon = document.createElement('link');
@@ -55,9 +67,28 @@ window.ENVIO_APP_CONFIG = {
     }
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', applyBranding, { once: true });
-  } else {
+  function loadAuthUi() {
+    if (!window.ENVIO_APP_CONFIG.authEnabled) return;
+
+    addStylesheet(AUTH_CSS_PATH, 'toga-auth-styles');
+
+    if (!document.querySelector('script[data-toga-auth-script]')) {
+      const script = document.createElement('script');
+      script.src = AUTH_JS_PATH;
+      script.defer = true;
+      script.dataset.togaAuthScript = 'true';
+      document.body.appendChild(script);
+    }
+  }
+
+  function init() {
     applyBranding();
+    loadAuthUi();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
   }
 })();
