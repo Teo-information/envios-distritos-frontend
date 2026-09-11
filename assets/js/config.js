@@ -20,8 +20,17 @@ window.ENVIO_APP_CONFIG = {
   'use strict';
 
   const LOGO_PATH = 'assets/img/toga-globe.svg';
+  const BRAND_CSS_PATH = 'assets/css/brand-layout-fixes.css';
 
   function applyBranding() {
+    if (!document.querySelector('link[data-toga-brand-styles]')) {
+      const styles = document.createElement('link');
+      styles.rel = 'stylesheet';
+      styles.href = BRAND_CSS_PATH;
+      styles.dataset.togaBrandStyles = 'true';
+      document.head.appendChild(styles);
+    }
+
     if (!document.querySelector('link[data-toga-favicon]')) {
       const favicon = document.createElement('link');
       favicon.rel = 'icon';
