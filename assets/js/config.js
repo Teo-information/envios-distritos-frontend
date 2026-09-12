@@ -1,30 +1,45 @@
 /**
- * Configuración V2 conectada a n8n.
- * Un único webhook actúa como gateway para consultar disponibilidad,
- * consultar lotes y generar el corte mediante el campo "accion".
+ * Configuración V2.
+ *
+ * Desarrollo local:
+ * - conserva el flujo actual directo a n8n para no romper BrowserSync.
+ * - autenticación desactivada porque localhost no publica /api.
+ *
+ * Producción/dominio:
+ * - activa autenticación con cookie HttpOnly.
+ * - todas las acciones pasan por FastAPI en /api/gateway/envios-distritos.
+ * - el navegador deja de conocer/utilizar directamente el webhook de n8n.
  */
-window.ENVIO_APP_CONFIG = {
-  mode: 'live', // 'mock' | 'live'
-
-  // Mientras la autenticación está desactivada, el frontend conserva
-  // el flujo actual directo a n8n. Al desplegar el dominio se cambiará
-  // a /api/gateway/envios-distritos detrás de FastAPI autenticado.
-  gatewayWebhook: 'https://paneln8n.toga.pe/webhook/envios-distritos/solicitud',
-
-  // Preparado para el despliegue con FastAPI + cookie HttpOnly.
-  // Se activa cuando el backend y el proxy HTTPS estén verificados.
-  authEnabled: false,
-  apiBase: '/api',
-
-  // Solo se usa como valor inicial visual. n8n mantiene la autoridad
-  // sobre el periodo real mediante CONTROL DE CIERRES.
-  defaultPeriod: '202607',
-
-  themeStorageKey: 'envios-data-theme'
-};
-
 (() => {
   'use strict';
+
+  const hostname = String(window.location.hostname || '').toLowerCase();
+  const isLocal = (
+    window.location.protocol === 'file:' ||
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '::1'
+  );
+
+  window.ENVIO_APP_CONFIG = {
+    mode: 'live', // 'mock' | 'live'
+
+    // En localhost se mantiene temporalmente el webhook directo para QA local.
+    // En el dominio, el único gateway visible al navegador será FastAPI.
+    gatewayWebhook: isLocal
+      ? 'https://paneln8n.toga.pe/webhook/envios-distritos/solicitud'
+      : '/api/gateway/envios-distritos',
+
+    // El login se activa automáticamente fuera de localhost.
+    authEnabled: !isLocal,
+    apiBase: '/api',
+
+    // Solo se usa como valor inicial visual. n8n mantiene la autoridad
+    // sobre el periodo real mediante CONTROL DE CIERRES.
+    defaultPeriod: '202607',
+
+    themeStorageKey: 'envios-data-theme'
+  };
 
   const LOGO_PATH = 'assets/img/toga-globe.svg';
   const BRAND_CSS_PATH = 'assets/css/brand-layout-fixes.css';
