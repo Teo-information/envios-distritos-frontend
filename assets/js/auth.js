@@ -132,6 +132,66 @@
       .replace(/'/g, '&#039;');
   }
 
+  function ensureToastRoot() {
+    let root = qs('#systemToastRoot');
+    if (root) return root;
+
+    root = document.createElement('div');
+    root.id = 'systemToastRoot';
+    root.className = 'system-toast-root';
+    root.setAttribute('aria-live', 'polite');
+    root.setAttribute('aria-atomic', 'true');
+    document.body.appendChild(root);
+    return root;
+  }
+
+  function showSystemToast({
+    type = 'success',
+    title = 'Mensaje del sistema',
+    message = '',
+    duration = 3600
+  } = {}) {
+    const root = ensureToastRoot();
+    const safeDuration = Math.max(1800, Number(duration) || 3600);
+    const toast = document.createElement('article');
+    const isError = type === 'error';
+
+    toast.className = `system-toast system-toast--${isError ? 'error' : 'success'}`;
+    toast.setAttribute('role', isError ? 'alert' : 'status');
+    toast.style.setProperty('--toast-duration', `${safeDuration}ms`);
+    toast.innerHTML = `
+      <div class="system-toast__accent" aria-hidden="true"></div>
+      <div class="system-toast__icon" aria-hidden="true">
+        ${isError
+          ? '<svg viewBox="0 0 24 24" fill="none"><path d="M12 8v5"/><path d="M12 17.2v.1"/><path d="M10.1 4.7 3.3 16.5a2 2 0 0 0 1.7 3h14a2 2 0 0 0 1.7-3L13.9 4.7a2.2 2.2 0 0 0-3.8 0Z"/></svg>'
+          : '<svg viewBox="0 0 24 24" fill="none"><path d="m7 12.5 3.2 3.2L17.5 8.5"/></svg>'}
+      </div>
+      <div class="system-toast__content">
+        <strong>${escapeHtml(title)}</strong>
+        ${message ? `<span>${escapeHtml(message)}</span>` : ''}
+      </div>
+      <button class="system-toast__close" type="button" aria-label="Cerrar notificación">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg>
+      </button>
+      <div class="system-toast__progress" aria-hidden="true"><span></span></div>`;
+
+    root.appendChild(toast);
+
+    let removed = false;
+    const removeToast = () => {
+      if (removed) return;
+      removed = true;
+      toast.classList.add('is-leaving');
+      window.setTimeout(() => toast.remove(), 320);
+    };
+
+    toast.querySelector('.system-toast__close')?.addEventListener('click', removeToast);
+    window.setTimeout(removeToast, safeDuration);
+    return toast;
+  }
+
+  window.showSystemToast = showSystemToast;
+
   function closeOtherViews() {
     document.body.classList.remove('is-history-view');
     qs('[data-view="history"]')?.classList.remove('is-active');
@@ -207,18 +267,49 @@
       event.preventDefault();
       const next = qs('#newPassword').value;
       if (next !== qs('#confirmPassword').value) {
-        alert('Las nuevas contraseñas no coinciden.');
+        showSystemToast({
+          type: 'error',
+          title: 'Las contraseñas no coinciden',
+          message: 'Verifica la nueva contraseña y vuelve a intentarlo.',
+          duration: 4400
+        });
         return;
       }
-      const result = await api('/auth/change-password', {
-        method: 'POST',
-        body: JSON.stringify({ current_password: qs('#currentPassword').value, new_password: next })
-      });
-      currentUser = result.user || currentUser;
-      document.body.classList.remove('auth-force-password');
-      renderSidebarUser();
-      await renderCredentials();
-      alert('Contraseña actualizada.');
+
+      const submit = event.currentTarget.querySelector('button[type="submit"]');
+      const originalLabel = submit?.textContent || 'Cambiar contraseña';
+      if (submit) {
+        submit.disabled = true;
+        submit.textContent = 'Actualizando...';
+      }
+
+      try {
+        const result = await api('/auth/change-password', {
+          method: 'POST',
+          body: JSON.stringify({ current_password: qs('#currentPassword').value, new_password: next })
+        });
+        currentUser = result.user || currentUser;
+        document.body.classList.remove('auth-force-password');
+        renderSidebarUser();
+        await renderCredentials();
+        showSystemToast({
+          type: 'success',
+          title: 'Contraseña actualizada',
+          message: 'Tu nueva contraseña se guardó correctamente.'
+        });
+      } catch (error) {
+        showSystemToast({
+          type: 'error',
+          title: 'No se pudo actualizar',
+          message: error.message || 'Ocurrió un problema al guardar la nueva contraseña.',
+          duration: 4800
+        });
+      } finally {
+        if (submit?.isConnected) {
+          submit.disabled = false;
+          submit.textContent = originalLabel;
+        }
+      }
     });
 
     qs('#createUserForm')?.addEventListener('submit', async event => {
