@@ -10,6 +10,41 @@
 
   const qs = selector => document.querySelector(selector);
 
+  function resetScrollPosition() {
+    try {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    } catch (_) {
+      window.scrollTo(0, 0);
+    }
+    document.documentElement.scrollTop = 0;
+    if (document.body) document.body.scrollTop = 0;
+  }
+
+  function revealResolvedAuthState() {
+    document.documentElement.classList.remove('auth-boot-pending');
+  }
+
+  function showLoginState() {
+    injectLogin();
+    const overlay = qs('#authOverlay');
+    document.body.classList.add('auth-login-visible');
+    if (overlay) overlay.hidden = false;
+    resetScrollPosition();
+    window.requestAnimationFrame(() => {
+      resetScrollPosition();
+      revealResolvedAuthState();
+    });
+  }
+
+  function showAuthenticatedState() {
+    document.body.classList.remove('auth-login-visible');
+    const overlay = qs('#authOverlay');
+    if (overlay) overlay.hidden = true;
+    resetScrollPosition();
+    revealResolvedAuthState();
+    window.requestAnimationFrame(resetScrollPosition);
+  }
+
   function api(path, options = {}) {
     return fetch(`${API}${path}`, {
       credentials: 'include',
@@ -81,7 +116,10 @@
         });
         currentUser = result.user || result;
         overlay.hidden = true;
+        document.body.classList.remove('auth-login-visible');
+        resetScrollPosition();
         await afterLogin();
+        showAuthenticatedState();
       } catch (error) {
         message.textContent = error.message || 'No se pudo iniciar sesión.';
       } finally {
@@ -119,6 +157,7 @@
 
     qs('#authLogout').addEventListener('click', async () => {
       try { await api('/auth/logout', { method: 'POST', body: '{}' }); } catch (_) {}
+      resetScrollPosition();
       window.location.reload();
     });
   }
@@ -364,15 +403,13 @@
   }
 
   async function bootstrap() {
-    injectLogin();
-    const overlay = qs('#authOverlay');
     try {
       const result = await api('/auth/me');
       currentUser = result.user || result;
-      overlay.hidden = true;
       await afterLogin();
+      showAuthenticatedState();
     } catch (error) {
-      overlay.hidden = false;
+      showLoginState();
     }
   }
 
