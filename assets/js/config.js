@@ -45,6 +45,8 @@
   const BRAND_CSS_PATH = 'assets/css/brand-layout-fixes.css';
   const AUTH_CSS_PATH = 'assets/css/auth-ui.css';
   const AUTH_JS_PATH = 'assets/js/auth.js';
+  const PASSWORD_TOGGLE_CSS_PATH = 'assets/css/password-toggle.css';
+  const PASSWORD_TOGGLE_JS_PATH = 'assets/js/password-toggle.js';
 
   function addStylesheet(path, datasetKey) {
     if (document.querySelector(`link[data-${datasetKey}]`)) return;
@@ -53,6 +55,15 @@
     styles.href = path;
     styles.setAttribute(`data-${datasetKey}`, 'true');
     document.head.appendChild(styles);
+  }
+
+  function addScript(path, datasetKey) {
+    if (document.querySelector(`script[data-${datasetKey}]`)) return;
+    const script = document.createElement('script');
+    script.src = path;
+    script.defer = true;
+    script.setAttribute(`data-${datasetKey}`, 'true');
+    document.body.appendChild(script);
   }
 
   function applyBranding() {
@@ -86,14 +97,9 @@
     if (!window.ENVIO_APP_CONFIG.authEnabled) return;
 
     addStylesheet(AUTH_CSS_PATH, 'toga-auth-styles');
-
-    if (!document.querySelector('script[data-toga-auth-script]')) {
-      const script = document.createElement('script');
-      script.src = AUTH_JS_PATH;
-      script.defer = true;
-      script.dataset.togaAuthScript = 'true';
-      document.body.appendChild(script);
-    }
+    addStylesheet(PASSWORD_TOGGLE_CSS_PATH, 'toga-password-toggle-styles');
+    addScript(AUTH_JS_PATH, 'toga-auth-script');
+    addScript(PASSWORD_TOGGLE_JS_PATH, 'toga-password-toggle-script');
   }
 
   function init() {
