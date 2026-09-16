@@ -23,6 +23,7 @@
     popover.className = 'password-requirement-popover';
     popover.id = 'passwordRequirementPopover';
     popover.setAttribute('role', 'alert');
+    popover.hidden = true;
     popover.innerHTML = `
       <div class="password-requirement-popover__icon" aria-hidden="true">!</div>
       <div class="password-requirement-popover__copy">
@@ -52,14 +53,33 @@
   }
 
   function messageFor(input) {
-    const length = input.value.length;
-    if (!length) return 'Ingresa una contraseña de al menos 10 caracteres.';
-    const missing = Math.max(0, MIN_LENGTH - length);
+    const missing = Math.max(0, MIN_LENGTH - input.value.length);
     if (missing === 1) return 'Te falta 1 carácter para cumplir el requisito.';
     return `Te faltan ${missing} caracteres para cumplir el requisito.`;
   }
 
+  function clearInputState(input) {
+    if (!input) return;
+    input.classList.remove('password-requirement-invalid');
+    input.removeAttribute('aria-invalid');
+    if (input.getAttribute('aria-describedby') === 'passwordRequirementPopover') {
+      input.removeAttribute('aria-describedby');
+    }
+  }
+
   function showRequirement(input) {
+    const length = input.value.length;
+
+    // El aviso solo existe para valores parciales: 1 a 9 caracteres.
+    if (length === 0 || length >= MIN_LENGTH) {
+      hideRequirement(input);
+      return;
+    }
+
+    if (activeInput && activeInput !== input) {
+      clearInputState(activeInput);
+    }
+
     activeInput = input;
     const node = ensurePopover();
     const message = node.querySelector('.password-requirement-popover__copy span');
@@ -73,16 +93,13 @@
   }
 
   function hideRequirement(input = activeInput) {
-    if (input) {
-      input.classList.remove('password-requirement-invalid');
-      input.removeAttribute('aria-invalid');
-      if (input.getAttribute('aria-describedby') === 'passwordRequirementPopover') {
-        input.removeAttribute('aria-describedby');
-      }
-    }
+    clearInputState(input);
 
     if (popover) popover.hidden = true;
-    if (!input || input === activeInput) activeInput = null;
+
+    if (!input || input === activeInput) {
+      activeInput = null;
+    }
   }
 
   function configureInput(input) {
@@ -104,7 +121,18 @@
     if (!isTarget(input)) return;
 
     event.preventDefault();
-    showRequirement(input);
+
+    // Si está vacío no mostramos el aviso de longitud mínima.
+    if (input.value.length === 0) {
+      hideRequirement(input);
+      return;
+    }
+
+    if (input.value.length < MIN_LENGTH) {
+      showRequirement(input);
+    } else {
+      hideRequirement(input);
+    }
   }, true);
 
   document.addEventListener('input', event => {
@@ -112,21 +140,29 @@
     if (!isTarget(input)) return;
 
     configureInput(input);
-    if (input.value.length >= MIN_LENGTH) {
+    const length = input.value.length;
+
+    // Vacío o condición cumplida: ocultar de inmediato.
+    if (length === 0 || length >= MIN_LENGTH) {
       hideRequirement(input);
       return;
     }
 
-    if (activeInput === input) showRequirement(input);
+    // Mientras exista texto insuficiente, mostramos feedback en tiempo real.
+    showRequirement(input);
   }, true);
 
   document.addEventListener('blur', event => {
     const input = event.target;
     if (!isTarget(input)) return;
 
-    if (input.value.length > 0 && input.value.length < MIN_LENGTH) {
-      showRequirement(input);
+    const length = input.value.length;
+    if (length === 0 || length >= MIN_LENGTH) {
+      hideRequirement(input);
+      return;
     }
+
+    showRequirement(input);
   }, true);
 
   document.addEventListener('focus', event => {
@@ -134,9 +170,13 @@
     if (!isTarget(input)) return;
 
     configureInput(input);
-    if (input.value.length > 0 && input.value.length < MIN_LENGTH) {
-      showRequirement(input);
+    const length = input.value.length;
+    if (length === 0 || length >= MIN_LENGTH) {
+      hideRequirement(input);
+      return;
     }
+
+    showRequirement(input);
   }, true);
 
   window.addEventListener('resize', () => {
