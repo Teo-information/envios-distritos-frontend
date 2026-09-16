@@ -5,6 +5,49 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Generación de envíos V2 | TOGA</title>
   <meta name="description" content="Frontend local para generación y control de cortes por distrito." />
+
+  <script>
+    (() => {
+      const hostname = String(window.location.hostname || '').toLowerCase();
+      const isLocal = (
+        window.location.protocol === 'file:' ||
+        hostname === 'localhost' ||
+        hostname === '127.0.0.1' ||
+        hostname === '::1'
+      );
+
+      if (!isLocal) {
+        document.documentElement.classList.add('auth-boot-pending');
+        if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+      }
+    })();
+  </script>
+  <style>
+    html.auth-boot-pending,
+    html.auth-boot-pending body {
+      min-height: 100%;
+      overflow: hidden !important;
+      background: #f8f8fc;
+    }
+
+    html.auth-boot-pending .app-shell,
+    html.auth-boot-pending .toast {
+      visibility: hidden !important;
+    }
+
+    html.auth-boot-pending body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 2147483000;
+      background: #f8f8fc;
+    }
+
+    body.auth-login-visible {
+      overflow: hidden !important;
+    }
+  </style>
+
   <link rel="stylesheet" href="assets/css/styles.css" />
   <link rel="stylesheet" href="assets/css/reuse-ui.css" />
   <link rel="stylesheet" href="assets/css/layout-fix.css" />
