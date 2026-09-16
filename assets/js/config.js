@@ -24,20 +24,13 @@
   window.ENVIO_APP_CONFIG = {
     mode: 'live', // 'mock' | 'live'
 
-    // En localhost se mantiene temporalmente el webhook directo para QA local.
-    // En el dominio, el único gateway visible al navegador será FastAPI.
     gatewayWebhook: isLocal
       ? 'https://paneln8n.toga.pe/webhook/envios-distritos/solicitud'
       : '/api/gateway/envios-distritos',
 
-    // El login se activa automáticamente fuera de localhost.
     authEnabled: !isLocal,
     apiBase: '/api',
-
-    // Solo se usa como valor inicial visual. n8n mantiene la autoridad
-    // sobre el periodo real mediante CONTROL DE CIERRES.
     defaultPeriod: '202607',
-
     themeStorageKey: 'envios-data-theme'
   };
 
@@ -45,24 +38,47 @@
   const BRAND_CSS_PATH = 'assets/css/brand-layout-fixes.css';
   const AUTH_CSS_PATH = 'assets/css/auth-ui.css';
   const LOGIN_SPLIT_CSS_PATH = 'assets/css/login-split.css';
-  const AUTH_JS_PATH = 'assets/js/auth.js';
   const PASSWORD_TOGGLE_CSS_PATH = 'assets/css/password-toggle.css';
+  const CREDENTIALS_POLISH_CSS_PATH = 'assets/css/credentials-polish.css';
+
+  const AUTH_JS_PATH = 'assets/js/auth.js';
   const PASSWORD_TOGGLE_JS_PATH = 'assets/js/password-toggle.js';
+  const CREDENTIALS_POLISH_JS_PATH = 'assets/js/credentials-polish.js';
+
+  function ensureStylesheet(path, datasetKey) {
+    return new Promise(resolve => {
+      const selector = `link[data-${datasetKey}]`;
+      const existing = document.querySelector(selector);
+
+      if (existing) {
+        if (existing.sheet) {
+          resolve();
+          return;
+        }
+        existing.addEventListener('load', resolve, { once: true });
+        existing.addEventListener('error', resolve, { once: true });
+        return;
+      }
+
+      const styles = document.createElement('link');
+      styles.rel = 'stylesheet';
+      styles.href = path;
+      styles.setAttribute(`data-${datasetKey}`, 'true');
+      styles.addEventListener('load', resolve, { once: true });
+      styles.addEventListener('error', resolve, { once: true });
+      document.head.appendChild(styles);
+    });
+  }
 
   function addStylesheet(path, datasetKey) {
-    if (document.querySelector(`link[data-${datasetKey}]`)) return;
-    const styles = document.createElement('link');
-    styles.rel = 'stylesheet';
-    styles.href = path;
-    styles.setAttribute(`data-${datasetKey}`, 'true');
-    document.head.appendChild(styles);
+    void ensureStylesheet(path, datasetKey);
   }
 
   function addScript(path, datasetKey) {
     if (document.querySelector(`script[data-${datasetKey}]`)) return;
     const script = document.createElement('script');
     script.src = path;
-    script.defer = true;
+    script.async = false;
     script.setAttribute(`data-${datasetKey}`, 'true');
     document.body.appendChild(script);
   }
@@ -94,19 +110,29 @@
     }
   }
 
-  function loadAuthUi() {
+  async function loadAuthUi() {
     if (!window.ENVIO_APP_CONFIG.authEnabled) return;
 
-    addStylesheet(AUTH_CSS_PATH, 'toga-auth-styles');
-    addStylesheet(PASSWORD_TOGGLE_CSS_PATH, 'toga-password-toggle-styles');
-    addStylesheet(LOGIN_SPLIT_CSS_PATH, 'toga-login-split-styles');
+    /*
+     * La pantalla autenticada permanece cubierta por auth-boot-pending
+     * hasta que TODOS los estilos del login estén listos. Esto evita
+     * el frame intermedio morado / logo sobredimensionado en una carga fría.
+     */
+    await Promise.all([
+      ensureStylesheet(AUTH_CSS_PATH, 'toga-auth-styles'),
+      ensureStylesheet(PASSWORD_TOGGLE_CSS_PATH, 'toga-password-toggle-styles'),
+      ensureStylesheet(LOGIN_SPLIT_CSS_PATH, 'toga-login-split-styles'),
+      ensureStylesheet(CREDENTIALS_POLISH_CSS_PATH, 'toga-credentials-polish-styles')
+    ]);
+
     addScript(AUTH_JS_PATH, 'toga-auth-script');
     addScript(PASSWORD_TOGGLE_JS_PATH, 'toga-password-toggle-script');
+    addScript(CREDENTIALS_POLISH_JS_PATH, 'toga-credentials-polish-script');
   }
 
   function init() {
     applyBranding();
-    loadAuthUi();
+    void loadAuthUi();
   }
 
   if (document.readyState === 'loading') {
