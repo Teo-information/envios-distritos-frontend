@@ -27,7 +27,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Confirmar que este commit sigue siendo main
+        shell: bash
+        run: |
+          set -euo pipefail
+          MAIN_SHA="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          echo "Workflow SHA: $GITHUB_SHA"
+          echo "Main actual:   $MAIN_SHA"
+          if [ "$GITHUB_SHA" != "$MAIN_SHA" ]; then
+            echo "Deploy omitido: este workflow pertenece a un commit obsoleto."
+            exit 0
+          fi
+          echo "DEPLOY_CURRENT_MAIN=true" >> "$GITHUB_ENV"
+
       - name: Validar secretos requeridos
+        if: env.DEPLOY_CURRENT_MAIN == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -36,6 +50,7 @@ jobs:
           test -n "$VPS_SSH_KEY_B64" || { echo "Falta VPS_SSH_KEY_B64"; exit 1; }
 
       - name: Preparar SSH
+        if: env.DEPLOY_CURRENT_MAIN == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -46,6 +61,7 @@ jobs:
           ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
 
       - name: Verificar VPS y Docker Swarm
+        if: env.DEPLOY_CURRENT_MAIN == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -61,18 +77,34 @@ jobs:
           '
 
       - name: Construir imagen
+        if: env.DEPLOY_CURRENT_MAIN == 'true'
         shell: bash
         run: |
           set -euo pipefail
           docker build --pull -t "$IMAGE" .
 
       - name: Transferir imagen al VPS
+        if: env.DEPLOY_CURRENT_MAIN == 'true'
         shell: bash
         run: |
           set -euo pipefail
           docker save "$IMAGE" | gzip -1 | ssh -o BatchMode=yes "$VPS_USER@$VPS_HOST" 'gunzip | docker load'
 
+      - name: Confirmar main nuevamente antes de publicar
+        if: env.DEPLOY_CURRENT_MAIN == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          MAIN_SHA="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          echo "Workflow SHA: $GITHUB_SHA"
+          echo "Main actual:   $MAIN_SHA"
+          if [ "$GITHUB_SHA" != "$MAIN_SHA" ]; then
+            echo "Deploy cancelado antes de publicar: main cambio durante el build."
+            exit 1
+          fi
+
       - name: Actualizar servicio envios_web
+        if: env.DEPLOY_CURRENT_MAIN == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -88,6 +120,7 @@ jobs:
           "
 
       - name: Verificar despliegue
+        if: env.DEPLOY_CURRENT_MAIN == 'true'
         shell: bash
         run: |
           set -euo pipefail
