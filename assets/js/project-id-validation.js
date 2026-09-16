@@ -107,6 +107,18 @@
     return raw.replace(/[^a-z]/g, '');
   }
 
+  function pad2(value) {
+    return String(value).padStart(2, '0');
+  }
+
+  function currentUtmDate() {
+    const now = new Date();
+    const day = pad2(now.getDate());
+    const month = pad2(now.getMonth() + 1);
+    const year = pad2(now.getFullYear() % 100);
+    return `${day}${month}${year}`;
+  }
+
   function extractUtmDigits(value) {
     const raw = String(value || '')
       .normalize('NFD')
@@ -114,12 +126,27 @@
       .toLowerCase();
 
     const suffix = raw.includes('_') ? raw.slice(raw.lastIndexOf('_') + 1) : raw;
-    return suffix.replace(/\D/g, '').slice(0, 8);
+    return suffix.replace(/\D/g, '').slice(0, 6);
+  }
+
+  function isValidUtmDate(digits) {
+    if (!/^\d{6}$/.test(digits)) return false;
+
+    const day = Number(digits.slice(0, 2));
+    const month = Number(digits.slice(2, 4));
+    const year = 2000 + Number(digits.slice(4, 6));
+    const date = new Date(year, month - 1, day);
+
+    return (
+      date.getFullYear() === year &&
+      date.getMonth() === month - 1 &&
+      date.getDate() === day
+    );
   }
 
   function utmExample() {
     const prefix = districtPrefix() || 'distrito';
-    return `${prefix}_100926`;
+    return `${prefix}_${currentUtmDate()}`;
   }
 
   function updateUtmHint({ error = false, valid = false, message = '' } = {}) {
@@ -127,16 +154,20 @@
 
     utmRule.classList.toggle('is-error', error);
     utmRule.classList.toggle('is-valid', valid);
-    utmRule.textContent = message || `Formato automático: ${utmExample()}. El valor numérico admite hasta 8 dígitos.`;
+    utmRule.textContent = message || `Se completa automáticamente con la fecha en formato DDMMYY: ${utmExample()}. Puedes modificarla.`;
   }
 
-  function syncUtm({ forcePrefix = false, preserveDigits = true } = {}) {
+  function syncUtm({ forcePrefix = false, preserveDigits = true, fillDate = false } = {}) {
     if (!utmInput) return;
 
     const prefix = districtPrefix();
     if (!prefix) return;
 
-    const digits = preserveDigits ? extractUtmDigits(utmInput.value) : '';
+    let digits = preserveDigits ? extractUtmDigits(utmInput.value) : '';
+
+    if (!digits && fillDate) {
+      digits = currentUtmDate();
+    }
 
     if (digits) {
       utmInput.value = `${prefix}_${digits}`;
@@ -160,11 +191,12 @@
 
     const prefix = districtPrefix();
     const value = String(utmInput.value || '').trim().toLowerCase();
-    const expected = new RegExp(`^${prefix}_\\d{1,8}$`);
-    const valid = Boolean(prefix) && expected.test(value);
+    const digits = extractUtmDigits(value);
+    const expected = new RegExp(`^${prefix}_\\d{6}$`);
+    const valid = Boolean(prefix) && expected.test(value) && isValidUtmDate(digits);
     const message = valid
       ? ''
-      : `UTM Campaign debe usar el formato ${prefix || 'distrito'}_12345678, con un máximo de 8 dígitos.`;
+      : `UTM Campaign debe usar el formato ${prefix || 'distrito'}_${currentUtmDate()} (DDMMYY) con una fecha válida.`;
 
     utmInput.classList.toggle('is-utm-invalid', !valid && report);
     if (!valid && report) utmInput.setAttribute('aria-invalid', 'true');
@@ -205,11 +237,13 @@
     utmInput.setAttribute('autocapitalize', 'none');
 
     utmInput.addEventListener('focus', () => {
-      if (!utmInput.value) syncUtm({ forcePrefix: true, preserveDigits: false });
+      if (!extractUtmDigits(utmInput.value)) {
+        syncUtm({ forcePrefix: true, preserveDigits: true, fillDate: true });
+      }
     });
 
     utmInput.addEventListener('input', () => {
-      syncUtm({ forcePrefix: true, preserveDigits: true });
+      syncUtm({ forcePrefix: true, preserveDigits: true, fillDate: false });
       validateUtm({ report: false });
     });
 
@@ -219,15 +253,18 @@
   }
 
   distritoInput?.addEventListener('change', () => {
-    const hasValue = Boolean(utmInput?.value);
-    syncUtm({ forcePrefix: hasValue, preserveDigits: true });
+    syncUtm({ forcePrefix: true, preserveDigits: true, fillDate: true });
     validateUtm({ report: false });
   });
 
   document.querySelectorAll('input[name="canal"]').forEach(input => {
     input.addEventListener('change', () => {
       validateProjectIds({ report: false });
-      syncUtm({ forcePrefix: false, preserveDigits: true });
+      syncUtm({
+        forcePrefix: isWhatsapp(),
+        preserveDigits: true,
+        fillDate: isWhatsapp()
+      });
       validateUtm({ report: false });
     });
   });
@@ -238,7 +275,11 @@
       if (utmInput) {
         utmInput.classList.remove('is-utm-invalid');
         utmInput.removeAttribute('aria-invalid');
-        syncUtm({ forcePrefix: false, preserveDigits: false });
+        syncUtm({
+          forcePrefix: isWhatsapp(),
+          preserveDigits: false,
+          fillDate: isWhatsapp()
+        });
       }
     }, 0);
   });
@@ -263,7 +304,11 @@
     }
   }, true);
 
-  syncUtm({ forcePrefix: false, preserveDigits: true });
+  syncUtm({
+    forcePrefix: isWhatsapp(),
+    preserveDigits: true,
+    fillDate: isWhatsapp()
+  });
 })();
 
 (() => {
