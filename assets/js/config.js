@@ -44,6 +44,7 @@
   const LOGO_PATH = 'assets/img/toga-globe.svg';
   const BRAND_CSS_PATH = 'assets/css/brand-layout-fixes.css';
   const AUTH_CSS_PATH = 'assets/css/auth-ui.css';
+  const LOGIN_SPLIT_CSS_PATH = 'assets/css/login-split.css';
   const AUTH_JS_PATH = 'assets/js/auth.js';
   const PASSWORD_TOGGLE_CSS_PATH = 'assets/css/password-toggle.css';
   const PASSWORD_TOGGLE_JS_PATH = 'assets/js/password-toggle.js';
@@ -98,6 +99,7 @@
 
     addStylesheet(AUTH_CSS_PATH, 'toga-auth-styles');
     addStylesheet(PASSWORD_TOGGLE_CSS_PATH, 'toga-password-toggle-styles');
+    addStylesheet(LOGIN_SPLIT_CSS_PATH, 'toga-login-split-styles');
     addScript(AUTH_JS_PATH, 'toga-auth-script');
     addScript(PASSWORD_TOGGLE_JS_PATH, 'toga-password-toggle-script');
   }
