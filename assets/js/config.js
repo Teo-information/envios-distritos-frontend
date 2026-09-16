@@ -39,10 +39,12 @@
   const AUTH_CSS_PATH = 'assets/css/auth-ui.css';
   const LOGIN_SPLIT_CSS_PATH = 'assets/css/login-split.css';
   const PASSWORD_TOGGLE_CSS_PATH = 'assets/css/password-toggle.css';
+  const PASSWORD_REQUIREMENTS_CSS_PATH = 'assets/css/password-requirements.css';
   const CREDENTIALS_POLISH_CSS_PATH = 'assets/css/credentials-polish.css';
 
   const AUTH_JS_PATH = 'assets/js/auth.js';
   const PASSWORD_TOGGLE_JS_PATH = 'assets/js/password-toggle.js';
+  const PASSWORD_REQUIREMENTS_JS_PATH = 'assets/js/password-requirements.js';
   const CREDENTIALS_POLISH_JS_PATH = 'assets/js/credentials-polish.js';
 
   function ensureStylesheet(path, datasetKey) {
@@ -121,12 +123,14 @@
     await Promise.all([
       ensureStylesheet(AUTH_CSS_PATH, 'toga-auth-styles'),
       ensureStylesheet(PASSWORD_TOGGLE_CSS_PATH, 'toga-password-toggle-styles'),
+      ensureStylesheet(PASSWORD_REQUIREMENTS_CSS_PATH, 'toga-password-requirements-styles'),
       ensureStylesheet(LOGIN_SPLIT_CSS_PATH, 'toga-login-split-styles'),
       ensureStylesheet(CREDENTIALS_POLISH_CSS_PATH, 'toga-credentials-polish-styles')
     ]);
 
     addScript(AUTH_JS_PATH, 'toga-auth-script');
     addScript(PASSWORD_TOGGLE_JS_PATH, 'toga-password-toggle-script');
+    addScript(PASSWORD_REQUIREMENTS_JS_PATH, 'toga-password-requirements-script');
     addScript(CREDENTIALS_POLISH_JS_PATH, 'toga-credentials-polish-script');
   }
 
